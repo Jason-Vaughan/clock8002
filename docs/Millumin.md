@@ -6,7 +6,7 @@ This guide explains how to send a countdown from Millumin to a piClock counter.
 
 1. Open the piClock web UI.
 2. Choose the timer you want the Millumin countdown to appear in.
-3. Under **Time sources** > **Source** you want the countdown to appear in, enter **9** in the timer number field. Use the following timer settings:
+3. Under **Time sources** > **Source** you want the countdown to appear in, enter **9** in the timer number field. See example below:
 
 ![piClock timer settings](timerSettings.png)
 
