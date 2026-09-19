@@ -150,3 +150,29 @@ func TestTextClockScaleNormalisation(t *testing.T) {
 		}
 	}
 }
+
+// TestLabelFontSizeFallback checks that a non-positive label-size falls back to
+// the default instead of reaching openFont, which panics on a size SDL_ttf
+// rejects — a hand-edited label-size=0 must not take the clock down at startup.
+func TestLabelFontSizeFallback(t *testing.T) {
+	tests := []struct {
+		configured int
+		want       int
+	}{
+		{200, 200},
+		{120, 120},
+		{1, 1},
+		{0, defaultLabelSize},
+		{-50, defaultLabelSize},
+	}
+
+	original := options.LabelFontSize
+	defer func() { options.LabelFontSize = original }()
+
+	for _, tc := range tests {
+		options.LabelFontSize = tc.configured
+		if got := labelFontSize(); got != tc.want {
+			t.Errorf("LabelFontSize=%d: expected %d, got %d", tc.configured, tc.want, got)
+		}
+	}
+}

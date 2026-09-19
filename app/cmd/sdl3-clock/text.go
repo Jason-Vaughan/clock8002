@@ -42,9 +42,20 @@ var textClock struct {
 
 // Font sizes. Rpi <4 is limited to 2048x2048 texture size.
 const (
-	labelSize = 200
-	iconSize  = 200
+	defaultLabelSize = 200
+	iconSize         = 200
 )
+
+// labelFontSize returns the configured label font size, falling back to the
+// default for a non-positive value. openFont panics on a size SDL_ttf rejects,
+// so a hand-edited label-size=0 would otherwise take the clock down at startup
+// rather than just rendering badly.
+func labelFontSize() int {
+	if options.LabelFontSize <= 0 {
+		return defaultLabelSize
+	}
+	return options.LabelFontSize
+}
 
 func initTextClock() {
 	if textClock.numberFont != nil {
@@ -55,7 +66,7 @@ func initTextClock() {
 	if textClock.labelFont != nil {
 		textClock.labelFont.Close()
 	}
-	textClock.labelFont = openFont(options.LabelFont, labelSize)
+	textClock.labelFont = openFont(options.LabelFont, labelFontSize())
 
 	if textClock.iconFont != nil {
 		textClock.iconFont.Close()
@@ -65,6 +76,11 @@ func initTextClock() {
 	if s := options.TextClockScale; s > 0 && (s < minTextClockScale || s > maxTextClockScale) {
 		log.Printf("text-clock-scale %v is outside %v-%v, using %v instead.",
 			s, minTextClockScale, maxTextClockScale, textClockScale())
+	}
+
+	if options.LabelFontSize <= 0 {
+		log.Printf("label-size %v is not usable, using %v instead.",
+			options.LabelFontSize, defaultLabelSize)
 	}
 
 	textClock.glyphRegexp = regexp.MustCompile(`^[\d:]+$`)

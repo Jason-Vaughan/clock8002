@@ -437,6 +437,9 @@ label-bg-alpha={{.LabelBGAlpha}}
 # Numbers font size
 numbers-size={{.NumberFontSize}}
 
+# Label font size
+label-size={{.LabelFontSize}}
+
 # Scale for text clock timers, icons and signal dots, 0.5-1.0
 text-clock-scale={{printf "%.2f" .TextClockScale}}
 

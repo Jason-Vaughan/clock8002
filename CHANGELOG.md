@@ -1,6 +1,12 @@
 ## Unreleased
 
 * Text clock
+  * Add `label-size`, the font size used to render text clock labels. Replaces a
+    hardcoded constant, so labels can now be sized independently of the timer
+    numbers (`numbers-size`). Defaults to 200, the previous hardcoded value, so
+    existing configs render unchanged. A non-positive value falls back to the
+    default and logs: `openFont` panics on a size SDL_ttf rejects, so a
+    hand-edited `label-size=0` would otherwise stop the clock at startup.
   * Add `text-clock-scale` (web config: "Text clock scale"), a 0.5-1.0 scale for
     the timer numbers, icons and signal dots on the `text`, `text2`, `text4`
     and `single` faces. Each row is scaled as a single composition about the
