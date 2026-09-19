@@ -6,49 +6,102 @@ import (
 	"github.com/Zyko0/go-sdl3/sdl"
 )
 
-// TestShrinkRectKeepsCenter checks that shrinking a rect scales it about its
-// own center, so a timer shrinks in place instead of drifting towards a corner.
-func TestShrinkRectKeepsCenter(t *testing.T) {
-	r := sdl.FRect{X: 530, Y: 10, W: 1380, H: 300}
-	centerX := r.X + r.W/2
-	centerY := r.Y + r.H/2
+// contains reports whether outer fully encloses inner.
+func contains(outer, inner sdl.FRect) bool {
+	return inner.X >= outer.X && inner.Y >= outer.Y &&
+		inner.X+inner.W <= outer.X+outer.W &&
+		inner.Y+inner.H <= outer.Y+outer.H
+}
 
-	shrinkRect(&r, 0.5)
+// TestScaleRowKeepsNesting is the regression test for the bug that scaling each
+// rect about its own centre introduced: the icon walked out of the number box
+// and the digits overflowed its right edge, which is visible whenever
+// draw-boxes is on. A row must stay nested at every supported scale.
+func TestScaleRowKeepsNesting(t *testing.T) {
+	// Row geometry of each text clock face, as the draw functions build it.
+	faces := []struct {
+		name                    string
+		numberBox, iconR, textR sdl.FRect
+	}{
+		{
+			"text/text3-row",
+			sdl.FRect{X: 530, Y: 10, W: 1380, H: 300},
+			sdl.FRect{X: 530, Y: 10, W: 300, H: 300},
+			sdl.FRect{X: 830, Y: 10, W: 1080, H: 300},
+		},
+		{
+			"text2-row",
+			sdl.FRect{X: 530, Y: 25, W: 1380, H: 440},
+			sdl.FRect{X: 530, Y: 25, W: 300, H: 440},
+			sdl.FRect{X: 830, Y: 25, W: 1080, H: 440},
+		},
+		{
+			"text4-row",
+			sdl.FRect{X: 505, Y: 40, W: 1380, H: 210},
+			sdl.FRect{X: 505, Y: 40, W: 300, H: 210},
+			sdl.FRect{X: 805, Y: 40, W: 1080, H: 210},
+		},
+		{
+			"single-line",
+			sdl.FRect{X: 25, Y: 290, W: 1870, H: 440},
+			sdl.FRect{X: 25, Y: 290, W: 300, H: 440},
+			sdl.FRect{X: 375, Y: 290, W: 1495, H: 440},
+		},
+	}
 
-	if r.W != 690 || r.H != 150 {
-		t.Errorf("expected 690x150, got %vx%v", r.W, r.H)
-	}
-	if got := r.X + r.W/2; got != centerX {
-		t.Errorf("center X moved: expected %v, got %v", centerX, got)
-	}
-	if got := r.Y + r.H/2; got != centerY {
-		t.Errorf("center Y moved: expected %v, got %v", centerY, got)
+	for _, f := range faces {
+		for _, scale := range []float32{1.0, 0.95, 0.8, 0.75, 0.5} {
+			box, icon, text := f.numberBox, f.iconR, f.textR
+			scaleRow(scale, &box, &text, &icon)
+
+			if !contains(box, icon) {
+				t.Errorf("%s at scale %v: icon %+v escaped number box %+v", f.name, scale, icon, box)
+			}
+			if !contains(box, text) {
+				t.Errorf("%s at scale %v: text %+v overflows number box %+v", f.name, scale, text, box)
+			}
+		}
 	}
 }
 
-// TestShrinkRectNoOps checks the cases that must leave the rect untouched, so
-// that the default scale of 1.0 renders byte-identically to the old layout.
-func TestShrinkRectNoOps(t *testing.T) {
-	tests := []struct {
-		name  string
-		rect  sdl.FRect
-		scale float32
-	}{
-		{"scale of 1.0", sdl.FRect{X: 25, Y: 290, W: 1870, H: 440}, 1.0},
-		{"scale above 1.0", sdl.FRect{X: 25, Y: 290, W: 1870, H: 440}, 1.5},
-		{"zero scale", sdl.FRect{X: 25, Y: 290, W: 1870, H: 440}, 0},
-		{"negative scale", sdl.FRect{X: 25, Y: 290, W: 1870, H: 440}, -0.5},
-		{"empty rect", sdl.FRect{X: 25, Y: 290, W: 0, H: 0}, 0.5},
-	}
+// TestScaleRowPreservesProportions checks that scaling is a true similarity
+// transform: every gap and size shrinks by exactly the scale factor, so the row
+// looks identical apart from its size.
+func TestScaleRowPreservesProportions(t *testing.T) {
+	const scale = 0.5
+	box := sdl.FRect{X: 530, Y: 25, W: 1380, H: 440}
+	icon := sdl.FRect{X: 530, Y: 25, W: 300, H: 440}
+	text := sdl.FRect{X: 830, Y: 25, W: 1080, H: 440}
+	gapBefore := text.X - icon.X
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := tc.rect
-			shrinkRect(&got, tc.scale)
-			if got != tc.rect {
-				t.Errorf("rect changed: expected %+v, got %+v", tc.rect, got)
-			}
-		})
+	scaleRow(scale, &box, &text, &icon)
+
+	if got, want := text.X-icon.X, gapBefore*scale; got != want {
+		t.Errorf("icon-to-text gap: expected %v, got %v", want, got)
+	}
+	if got, want := box.W, float32(1380*scale); got != want {
+		t.Errorf("box width: expected %v, got %v", want, got)
+	}
+	// The row must stay centred in the space it occupied.
+	if got, want := box.X+box.W/2, float32(530+1380/2); got != want {
+		t.Errorf("row centre moved: expected %v, got %v", want, got)
+	}
+}
+
+// TestScaleRowNoOps checks the cases that must leave geometry untouched, so the
+// default scale of 1.0 renders exactly as previous versions did.
+func TestScaleRowNoOps(t *testing.T) {
+	for _, scale := range []float32{1.0, 1.5, 0, -0.5} {
+		box := sdl.FRect{X: 530, Y: 25, W: 1380, H: 440}
+		icon := sdl.FRect{X: 530, Y: 25, W: 300, H: 440}
+		want := box
+		wantIcon := icon
+
+		scaleRow(scale, &box, &icon)
+
+		if box != want || icon != wantIcon {
+			t.Errorf("scale %v changed geometry: box %+v icon %+v", scale, box, icon)
+		}
 	}
 }
 

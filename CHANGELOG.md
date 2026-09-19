@@ -2,10 +2,12 @@
 
 * Text clock
   * Add `text-clock-scale` (web config: "Text clock scale"), a 0.5-1.0 scale for
-    the timer numbers, icons and signal dots on the `text2`, `text3`, `text4`
-    and single-line faces. The timers shrink about their own centres, so the
-    row layout and the labels do not move. Defaults to 1.0, which renders
-    identically to previous versions; configs without the key are unaffected.
+    the timer numbers, icons and signal dots on the `text`, `text2`, `text4`
+    and `single` faces. Each row is scaled as a single composition about the
+    centre of its number box, so the icon stays inside the box and the digits
+    stay within it at every scale; labels keep their position and size.
+    Defaults to 1.0, which renders identically to previous versions; configs
+    without the key are unaffected.
     Scaling the destination rect is what actually resizes a timer — `copyIntoRect`
     fits the texture with `centerRect`, so on-screen size follows the rect rather
     than `numbers-size`. The `max` face is deliberately not scaled.

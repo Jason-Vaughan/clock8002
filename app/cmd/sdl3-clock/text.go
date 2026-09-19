@@ -62,6 +62,11 @@ func initTextClock() {
 	}
 	textClock.iconFont = openFont(options.IconFont, iconSize)
 
+	if s := options.TextClockScale; s > 0 && (s < minTextClockScale || s > maxTextClockScale) {
+		log.Printf("text-clock-scale %v is outside %v-%v, using %v instead.",
+			s, minTextClockScale, maxTextClockScale, textClockScale())
+	}
+
 	textClock.glyphRegexp = regexp.MustCompile(`^[\d:]+$`)
 	preRenderFonts()
 
@@ -176,11 +181,11 @@ func drawSingleLineClock(state *clock.State) {
 
 	signalR := sdl.FRect{X: 1920 - 170, Y: 115, H: 150, W: 150}
 
-	scale := textClockScale()
-	shrinkRect(&numberBox, scale)
-	shrinkRect(&textR, scale)
-	shrinkRect(&iconR, scale)
-	shrinkRect(&signalR, scale)
+	// signalR is excluded here, unlike the multi-row faces: on this face the
+	// signal dot sits on the label line rather than beside the timer, and the
+	// label is not scaled, so scaling the dot would pull it away from the row
+	// it belongs to and down into the number box.
+	scaleRow(textClockScale(), &numberBox, &textR, &iconR)
 
 	if options.DrawBoxes {
 		// Draw the placeholder boxes for timers and labels
@@ -234,10 +239,7 @@ func draw3TextClocks(state *clock.State) {
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 100}
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 125, W: 150, H: 150}
-		shrinkRect(&numberBox, scale)
-		shrinkRect(&textR, scale)
-		shrinkRect(&iconR, scale)
-		shrinkRect(&signalR, scale)
+		scaleRow(scale, &numberBox, &textR, &iconR, &signalR)
 		if options.DrawBoxes {
 			// Draw the placeholder boxes for timers and labels
 			rectColor(&numberBox, colors.rowBG[i])
@@ -290,10 +292,7 @@ func draw2TextClocks(state *clock.State) {
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 150}
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 170, W: 150, H: 150}
-		shrinkRect(&numberBox, scale)
-		shrinkRect(&textR, scale)
-		shrinkRect(&iconR, scale)
-		shrinkRect(&signalR, scale)
+		scaleRow(scale, &numberBox, &textR, &iconR, &signalR)
 		if options.DrawBoxes {
 			rectColor(&numberBox, colors.rowBG[i])
 			rectColor(&labelR, colors.labelBG)
@@ -342,10 +341,7 @@ func draw4TextClocks(state *clock.State) {
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 80}
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 95, W: 120, H: 120}
-		shrinkRect(&numberBox, scale)
-		shrinkRect(&textR, scale)
-		shrinkRect(&iconR, scale)
-		shrinkRect(&signalR, scale)
+		scaleRow(scale, &numberBox, &textR, &iconR, &signalR)
 		if options.DrawBoxes {
 			rectColor(&numberBox, colors.rowBG[i])
 			rectColor(&labelR, colors.labelBG)
@@ -664,20 +660,41 @@ func textClockScale() float32 {
 	return float32(s)
 }
 
-// shrinkRect scales r down by scale about its own center, leaving the space it
-// occupied unchanged. Scaling the destination rect is what actually resizes a
-// timer on screen: copyIntoRect fits the texture into the rect with centerRect,
-// so on-screen size follows the rect, not the font size it was rendered at.
-func shrinkRect(r *sdl.FRect, scale float32) {
+// scaleRectAbout scales r by scale about the point (ax, ay).
+//
+// Every rect in a row must be scaled about the SAME anchor, otherwise the row
+// stops composing: scaling each rect about its own center pulls each one
+// towards a different point, so the icon walks out of the number box it is
+// meant to sit in and the digits overflow the box's right edge. Anchoring the
+// whole row on one point is a similarity transform, which preserves the
+// relative geometry exactly at any scale.
+//
+// Scaling the destination rect is what actually resizes a timer on screen:
+// copyIntoRect fits the texture into the rect with centerRect, so on-screen
+// size follows the rect, not the font size it was rendered at.
+func scaleRectAbout(r *sdl.FRect, ax, ay, scale float32) {
 	if scale >= 1.0 || scale <= 0 || r.W <= 0 || r.H <= 0 {
 		return
 	}
-	w := r.W * scale
-	h := r.H * scale
-	r.X += (r.W - w) / 2
-	r.Y += (r.H - h) / 2
-	r.W = w
-	r.H = h
+	r.X = ax + (r.X-ax)*scale
+	r.Y = ay + (r.Y-ay)*scale
+	r.W *= scale
+	r.H *= scale
+}
+
+// scaleRow scales a text clock row's rects about the center of its number box,
+// so the row shrinks as one composition and stays centered in the space it had.
+// Labels are deliberately not passed here: they keep their position and size.
+func scaleRow(scale float32, numberBox *sdl.FRect, rects ...*sdl.FRect) {
+	if scale >= 1.0 || scale <= 0 {
+		return
+	}
+	ax := numberBox.X + numberBox.W/2
+	ay := numberBox.Y + numberBox.H/2
+	for _, r := range rects {
+		scaleRectAbout(r, ax, ay, scale)
+	}
+	scaleRectAbout(numberBox, ax, ay, scale)
 }
 
 func centerRect(w, h float32, r sdl.FRect) sdl.FRect {
