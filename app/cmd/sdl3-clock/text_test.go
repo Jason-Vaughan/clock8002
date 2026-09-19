@@ -220,6 +220,13 @@ func TestOverrideLabelRect(t *testing.T) {
 			x:    10, y: 300, w: 500, h: 150, useY: true,
 			want: sdl.FRect{X: 10, Y: 300, W: 500, H: 150},
 		},
+		{
+			// Consistent with x: once label-w enables the override, a y of 0
+			// means the top edge, not "leave the built-in position alone".
+			name: "y of 0 means flush top, not unset",
+			x:    10, y: 0, w: 500, h: 150, useY: true,
+			want: sdl.FRect{X: 10, Y: 0, W: 500, H: 150},
+		},
 	}
 
 	origX, origY := options.LabelX, options.LabelY

@@ -569,6 +569,8 @@ numbers-size=250
 label-size=200
 # Label rect, in 1920x1080 coordinates (SDL scales to the real display).
 # label-w is the switch: leave it 0 to keep each face's built-in label layout.
+# Once it is set, label-x and label-y are applied as given, so 0 means the left
+# or top edge rather than "unset"; label-h of 0 keeps the face's own height.
 # label-y applies to the single-line face only -- the multi-row faces step Y
 # per row, so a fixed value would stack every label on the first.
 label-x=0

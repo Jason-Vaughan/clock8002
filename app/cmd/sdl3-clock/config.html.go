@@ -635,8 +635,8 @@ const configHTML = `
 
                   {{number "LabelW" "Label width in 1920x1080 coordinates. 0 keeps the built-in layout for the face; any other value enables the label position and size fields below." .LabelW}}
                   {{number "LabelH" "Label height. 0 keeps the built-in height for the face." .LabelH}}
-                  {{number "LabelX" "Label X position. Needs a label width above to take effect." .LabelX}}
-                  {{number "LabelY" "Label Y position. Single-line face only: the multi-row faces step Y per row. Needs a label width above to take effect." .LabelY}}
+                  {{number "LabelX" "Label X position, applied as given once a label width is set (0 means the left edge)." .LabelX}}
+                  {{number "LabelY" "Label Y position, applied as given once a label width is set (0 means the top edge). Single-line face only: the multi-row faces step Y per row." .LabelY}}
 
                   {{number "LabelFontSize" "Size used to render label text, the AM/PM indicator and OSC tally text. Higher results in smoother letters, but going too high will crash on the rpi. Maximum 512." .LabelFontSize}}
 

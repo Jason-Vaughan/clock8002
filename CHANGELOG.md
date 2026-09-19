@@ -5,9 +5,11 @@
     on the `text`, `text2`, `text4` and `single` faces in 1920x1080 coordinates.
     `label-w` is the switch: at 0 each face keeps its built-in label layout, so
     existing configs are unaffected. `label-h` of 0 keeps the face's built-in
-    height rather than collapsing the label, and `label-y` applies to `single`
-    only -- the multi-row faces step Y per row, so a fixed value would stack
-    every label on the first. The `max` face is not affected.
+    height rather than collapsing the label. Once `label-w` is set, `label-x`
+    and `label-y` are applied as given, so 0 means the left or top edge rather
+    than "unset". `label-y` applies to `single` only -- the multi-row faces step
+    Y per row, so a fixed value would stack every label on the first. The `max`
+    face is not affected.
   * Add `label-size` (1-512), the font size used to render text clock labels,
     the AM/PM indicator and the OSC tally text. Replaces a hardcoded constant,
     so labels can now be sized independently of the timer numbers

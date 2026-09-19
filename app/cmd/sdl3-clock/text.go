@@ -68,9 +68,10 @@ func labelFontSize() int {
 // coordinates. label-w is the switch for the whole feature: at 0 the face keeps
 // its built-in layout, so a config that does not set it is unaffected.
 //
-// Height is only overridden when positive, because a height of 0 would collapse
-// the label to nothing rather than fall back. X is applied as given, since 0 is
-// a legitimate position (flush to the left edge) rather than "unset".
+// Once enabled, position is explicit: X and Y are applied as given, because 0
+// is a legitimate position (flush to the top or left edge) rather than "unset".
+// Height is the exception and is only overridden when positive, since a height
+// of 0 would collapse the label to nothing rather than fall back to the face's.
 //
 // useY is false for the multi-row faces, where Y is stepped per row and a fixed
 // value would stack every label on top of the first.
@@ -85,7 +86,7 @@ func overrideLabelRect(r *sdl.FRect, useY bool) {
 	if options.LabelH > 0 {
 		r.H = float32(options.LabelH)
 	}
-	if useY && options.LabelY > 0 {
+	if useY && options.LabelY >= 0 {
 		r.Y = float32(options.LabelY)
 	}
 }
