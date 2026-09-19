@@ -633,7 +633,7 @@ const configHTML = `
 
                   {{number "NumberFontSize" "Size used to render number tect, higher results in smoother letters, but going too high will crash on the rpi." .NumberFontSize}}
 
-                  {{number "LabelFontSize" "Size used to render label text, higher results in smoother letters, but going too high will crash on the rpi." .LabelFontSize}}
+                  {{number "LabelFontSize" "Size used to render label text, the AM/PM indicator and OSC tally text. Higher results in smoother letters, but going too high will crash on the rpi. Maximum 512." .LabelFontSize}}
 
                   {{float "TextClockScale" "Scale for text clock timers, icons and signal dots. 1.0 fills the row, lower values shrink the timers in place. Labels are not affected." 0.5 1.0 0.01 .TextClockScale}}
                 </fieldset>

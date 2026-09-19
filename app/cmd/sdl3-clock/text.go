@@ -44,6 +44,13 @@ var textClock struct {
 const (
 	defaultLabelSize = 200
 	iconSize         = 200
+
+	// Upper bound accepted for label-size. The real limit is the renderer's
+	// texture size -- 2048x2048 on rpi models before the 4 -- and labels are
+	// truncated to 10 characters, so the default 200 already renders close to
+	// that on an older pi. This leaves headroom for boards with larger texture
+	// limits while refusing values that cannot render anywhere.
+	maxLabelSize = 512
 )
 
 // labelFontSize returns the configured label font size, falling back to the
@@ -82,6 +89,19 @@ func initTextClock() {
 		log.Printf("label-size %v is not usable, using %v instead.",
 			options.LabelFontSize, defaultLabelSize)
 	}
+
+	// The fonts have just been reopened, so every cached texture was rendered
+	// at the OLD size. preRenderFonts only re-renders the number glyphs; the
+	// label, AM/PM and tally textures are cached against their own text and
+	// renderLabel/renderAMPM/drawTally only re-render when that text changes.
+	// Clearing the cached strings forces a re-render on the next draw, without
+	// which a config reload that changes label-size leaves the old textures on
+	// screen indefinitely and the setting looks like it did nothing.
+	for i := range textClock.r {
+		textClock.r[i].label = ""
+		textClock.r[i].ampm = ""
+	}
+	textClock.tally = ""
 
 	textClock.glyphRegexp = regexp.MustCompile(`^[\d:]+$`)
 	preRenderFonts()

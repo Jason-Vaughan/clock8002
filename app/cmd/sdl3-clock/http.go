@@ -314,6 +314,9 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 
 	newOptions.LabelFontSize, err = strconv.Atoi(r.FormValue("LabelFontSize"))
 	errors += util.ValidateNumber(err, "Label font size")
+	if err == nil {
+		errors += util.ValidateFloatRange(float64(newOptions.LabelFontSize), 1, maxLabelSize, "Label font size")
+	}
 
 	newOptions.TextClockScale, err = strconv.ParseFloat(r.FormValue("TextClockScale"), 64)
 	errors += util.ValidateNumber(err, "Text clock scale")
