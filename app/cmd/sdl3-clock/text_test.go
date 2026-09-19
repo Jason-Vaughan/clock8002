@@ -132,3 +132,21 @@ func TestTextClockScaleClamps(t *testing.T) {
 		}
 	}
 }
+
+// TestTextClockScaleNormalisation documents the contract computeDerivedOptions
+// relies on: whatever is in clock.ini, the value handed to the web form and
+// written back must be inside the range the form's min/max accepts, or the
+// browser rejects the entire config form on submit.
+func TestTextClockScaleNormalisation(t *testing.T) {
+	original := options.TextClockScale
+	defer func() { options.TextClockScale = original }()
+
+	for _, configured := range []float64{1.5, 2.0, 0.1, 0, -1, 0.5, 0.75, 1.0} {
+		options.TextClockScale = configured
+		normalised := float64(textClockScale())
+		if normalised < minTextClockScale || normalised > maxTextClockScale {
+			t.Errorf("TextClockScale=%v normalised to %v, outside %v-%v",
+				configured, normalised, minTextClockScale, maxTextClockScale)
+		}
+	}
+}

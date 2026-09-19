@@ -8,6 +8,8 @@
     stay within it at every scale; labels keep their position and size.
     Defaults to 1.0, which renders identically to previous versions; configs
     without the key are unaffected.
+    An out-of-range value in `clock.ini` is normalised on load, so it cannot
+    make the browser reject the whole config form on submit.
     Scaling the destination rect is what actually resizes a timer — `copyIntoRect`
     fits the texture with `centerRect`, so on-screen size follows the rect rather
     than `numbers-size`. The `max` face is deliberately not scaled.
