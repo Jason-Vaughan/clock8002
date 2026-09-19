@@ -176,6 +176,12 @@ func drawSingleLineClock(state *clock.State) {
 
 	signalR := sdl.FRect{X: 1920 - 170, Y: 115, H: 150, W: 150}
 
+	scale := textClockScale()
+	shrinkRect(&numberBox, scale)
+	shrinkRect(&textR, scale)
+	shrinkRect(&iconR, scale)
+	shrinkRect(&signalR, scale)
+
 	if options.DrawBoxes {
 		// Draw the placeholder boxes for timers and labels
 		rectColor(&numberBox, colors.rowBG[0])
@@ -210,6 +216,7 @@ func drawSingleLineClock(state *clock.State) {
 
 func draw3TextClocks(state *clock.State) {
 	var x, y float32
+	scale := textClockScale()
 
 	for i := 0; i < 3; i++ {
 		if state.Clocks[i].Hidden {
@@ -227,6 +234,10 @@ func draw3TextClocks(state *clock.State) {
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 100}
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 125, W: 150, H: 150}
+		shrinkRect(&numberBox, scale)
+		shrinkRect(&textR, scale)
+		shrinkRect(&iconR, scale)
+		shrinkRect(&signalR, scale)
 		if options.DrawBoxes {
 			// Draw the placeholder boxes for timers and labels
 			rectColor(&numberBox, colors.rowBG[i])
@@ -262,6 +273,7 @@ func draw3TextClocks(state *clock.State) {
 
 func draw2TextClocks(state *clock.State) {
 	var x, y float32
+	scale := textClockScale()
 
 	for i := 0; i < 2; i++ {
 		if state.Clocks[i].Hidden {
@@ -278,6 +290,10 @@ func draw2TextClocks(state *clock.State) {
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 150}
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 170, W: 150, H: 150}
+		shrinkRect(&numberBox, scale)
+		shrinkRect(&textR, scale)
+		shrinkRect(&iconR, scale)
+		shrinkRect(&signalR, scale)
 		if options.DrawBoxes {
 			rectColor(&numberBox, colors.rowBG[i])
 			rectColor(&labelR, colors.labelBG)
@@ -309,6 +325,7 @@ func draw2TextClocks(state *clock.State) {
 
 func draw4TextClocks(state *clock.State) {
 	var x, y float32
+	scale := textClockScale()
 
 	for i := 0; i < 4; i++ {
 		if state.Clocks[i].Hidden {
@@ -325,6 +342,10 @@ func draw4TextClocks(state *clock.State) {
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 80}
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 95, W: 120, H: 120}
+		shrinkRect(&numberBox, scale)
+		shrinkRect(&textR, scale)
+		shrinkRect(&iconR, scale)
+		shrinkRect(&signalR, scale)
 		if options.DrawBoxes {
 			rectColor(&numberBox, colors.rowBG[i])
 			rectColor(&labelR, colors.labelBG)
@@ -615,6 +636,48 @@ func renderedTextRight(tex *sdl.Texture, r sdl.FRect) float32 {
 	w, h, _ := tex.Size()
 	dest := centerRect(w, h, r)
 	return dest.X + dest.W
+}
+
+// Supported range for options.TextClockScale. 1.0 is the historical layout and
+// the default; anything below minTextClockScale shrinks the timers past the
+// point of being readable across a room.
+const (
+	minTextClockScale = 0.5
+	maxTextClockScale = 1.0
+)
+
+// textClockScale returns options.TextClockScale clamped to the supported range.
+// The web UI validates the same range, but clock.ini is hand-editable, so an
+// out-of-range value is clamped rather than allowed to render an unusable face.
+//
+// A non-positive value means the option was never set, and is treated as 1.0
+// rather than clamped up to minTextClockScale: the zero value must render the
+// historical layout, so a config predating this option is unaffected.
+func textClockScale() float32 {
+	s := options.TextClockScale
+	if s <= 0 || s > maxTextClockScale {
+		return maxTextClockScale
+	}
+	if s < minTextClockScale {
+		return minTextClockScale
+	}
+	return float32(s)
+}
+
+// shrinkRect scales r down by scale about its own center, leaving the space it
+// occupied unchanged. Scaling the destination rect is what actually resizes a
+// timer on screen: copyIntoRect fits the texture into the rect with centerRect,
+// so on-screen size follows the rect, not the font size it was rendered at.
+func shrinkRect(r *sdl.FRect, scale float32) {
+	if scale >= 1.0 || scale <= 0 || r.W <= 0 || r.H <= 0 {
+		return
+	}
+	w := r.W * scale
+	h := r.H * scale
+	r.X += (r.W - w) / 2
+	r.Y += (r.H - h) / 2
+	r.W = w
+	r.H = h
 }
 
 func centerRect(w, h float32, r sdl.FRect) sdl.FRect {
