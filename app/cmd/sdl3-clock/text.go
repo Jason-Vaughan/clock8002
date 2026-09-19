@@ -64,6 +64,32 @@ func labelFontSize() int {
 	return options.LabelFontSize
 }
 
+// overrideLabelRect applies the configured label rect to r, in 1920x1080
+// coordinates. label-w is the switch for the whole feature: at 0 the face keeps
+// its built-in layout, so a config that does not set it is unaffected.
+//
+// Height is only overridden when positive, because a height of 0 would collapse
+// the label to nothing rather than fall back. X is applied as given, since 0 is
+// a legitimate position (flush to the left edge) rather than "unset".
+//
+// useY is false for the multi-row faces, where Y is stepped per row and a fixed
+// value would stack every label on top of the first.
+func overrideLabelRect(r *sdl.FRect, useY bool) {
+	if options.LabelW <= 0 {
+		return
+	}
+	if options.LabelX >= 0 {
+		r.X = float32(options.LabelX)
+	}
+	r.W = float32(options.LabelW)
+	if options.LabelH > 0 {
+		r.H = float32(options.LabelH)
+	}
+	if useY && options.LabelY > 0 {
+		r.Y = float32(options.LabelY)
+	}
+}
+
 func initTextClock() {
 	if textClock.numberFont != nil {
 		textClock.numberFont.Close()
@@ -206,6 +232,7 @@ func drawMaxClock(state *clock.State) {
 
 func drawSingleLineClock(state *clock.State) {
 	labelR := sdl.FRect{X: 25, Y: 115, H: 150, W: 900}
+	overrideLabelRect(&labelR, true)
 	// 25px margin bellow label
 	numberBox := sdl.FRect{X: 25, Y: 290, H: 440, W: 1920 - 50}
 	iconR := sdl.FRect{X: 25, Y: 290, H: 440, W: 300}
@@ -274,6 +301,7 @@ func draw3TextClocks(state *clock.State) {
 		iconR := sdl.FRect{X: x, Y: y, W: 300, H: 300}
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 100}
+		overrideLabelRect(&labelR, false)
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 125, W: 150, H: 150}
 		scaleRow(scale, &numberBox, &textR, &iconR, &signalR)
 		if options.DrawBoxes {
@@ -327,6 +355,7 @@ func draw2TextClocks(state *clock.State) {
 		iconR := sdl.FRect{X: x, Y: y, W: 300, H: 440}
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 150}
+		overrideLabelRect(&labelR, false)
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 170, W: 150, H: 150}
 		scaleRow(scale, &numberBox, &textR, &iconR, &signalR)
 		if options.DrawBoxes {
@@ -376,6 +405,7 @@ func draw4TextClocks(state *clock.State) {
 		iconR := sdl.FRect{X: x, Y: y, W: 300, H: 210}
 		x = 10
 		labelR := sdl.FRect{X: x, Y: y, W: 500, H: 80}
+		overrideLabelRect(&labelR, false)
 		signalR := sdl.FRect{X: iconR.X - 175, Y: y + 95, W: 120, H: 120}
 		scaleRow(scale, &numberBox, &textR, &iconR, &signalR)
 		if options.DrawBoxes {

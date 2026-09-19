@@ -318,6 +318,25 @@ func saveHandler(w http.ResponseWriter, r *http.Request) {
 		errors += util.ValidateFloatRange(float64(newOptions.LabelFontSize), 1, maxLabelSize, "Label font size")
 	}
 
+	// Label rect, in 1920x1080 logical coordinates.
+	for _, f := range []struct {
+		field *int
+		name  string
+		title string
+		max   float64
+	}{
+		{&newOptions.LabelX, "LabelX", "Label X", 1920},
+		{&newOptions.LabelY, "LabelY", "Label Y", 1080},
+		{&newOptions.LabelW, "LabelW", "Label width", 1920},
+		{&newOptions.LabelH, "LabelH", "Label height", 1080},
+	} {
+		*f.field, err = strconv.Atoi(r.FormValue(f.name))
+		errors += util.ValidateNumber(err, f.title)
+		if err == nil {
+			errors += util.ValidateFloatRange(float64(*f.field), 0, f.max, f.title)
+		}
+	}
+
 	newOptions.TextClockScale, err = strconv.ParseFloat(r.FormValue("TextClockScale"), 64)
 	errors += util.ValidateNumber(err, "Text clock scale")
 	if err == nil {

@@ -176,3 +176,95 @@ func TestLabelFontSizeFallback(t *testing.T) {
 		}
 	}
 }
+
+// TestOverrideLabelRect covers the label rect overrides: label-w gates the
+// whole feature, height falls back rather than collapsing, and Y is refused on
+// the multi-row faces where it would stack every label on the first row.
+func TestOverrideLabelRect(t *testing.T) {
+	// The built-in text2 label rect, as draw2TextClocks builds it for row 1.
+	base := sdl.FRect{X: 10, Y: 555, W: 500, H: 150}
+
+	tests := []struct {
+		name       string
+		x, y, w, h int
+		useY       bool
+		want       sdl.FRect
+	}{
+		{
+			name: "disabled when label-w is 0",
+			x:    999, y: 999, w: 0, h: 999, useY: true,
+			want: base,
+		},
+		{
+			name: "width and height applied",
+			x:    0, y: 0, w: 700, h: 200, useY: false,
+			want: sdl.FRect{X: 0, Y: 555, W: 700, H: 200},
+		},
+		{
+			name: "height of 0 keeps the built-in height",
+			x:    40, y: 0, w: 700, h: 0, useY: false,
+			want: sdl.FRect{X: 40, Y: 555, W: 700, H: 150},
+		},
+		{
+			name: "x of 0 means flush left, not unset",
+			x:    0, y: 0, w: 600, h: 0, useY: false,
+			want: sdl.FRect{X: 0, Y: 555, W: 600, H: 150},
+		},
+		{
+			name: "y ignored on multi-row faces",
+			x:    10, y: 300, w: 500, h: 150, useY: false,
+			want: base,
+		},
+		{
+			name: "y applied on the single-line face",
+			x:    10, y: 300, w: 500, h: 150, useY: true,
+			want: sdl.FRect{X: 10, Y: 300, W: 500, H: 150},
+		},
+	}
+
+	origX, origY := options.LabelX, options.LabelY
+	origW, origH := options.LabelW, options.LabelH
+	defer func() {
+		options.LabelX, options.LabelY = origX, origY
+		options.LabelW, options.LabelH = origW, origH
+	}()
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			options.LabelX, options.LabelY = tc.x, tc.y
+			options.LabelW, options.LabelH = tc.w, tc.h
+			got := base
+			overrideLabelRect(&got, tc.useY)
+			if got != tc.want {
+				t.Errorf("expected %+v, got %+v", tc.want, got)
+			}
+		})
+	}
+}
+
+// TestOverrideLabelRectDefaultsAreInert is the compatibility guarantee: the
+// shipped defaults must leave every face's label exactly where it was.
+func TestOverrideLabelRectDefaultsAreInert(t *testing.T) {
+	origX, origY := options.LabelX, options.LabelY
+	origW, origH := options.LabelW, options.LabelH
+	defer func() {
+		options.LabelX, options.LabelY = origX, origY
+		options.LabelW, options.LabelH = origW, origH
+	}()
+	options.LabelX, options.LabelY, options.LabelW, options.LabelH = 0, 0, 0, 0
+
+	for _, base := range []sdl.FRect{
+		{X: 25, Y: 115, W: 900, H: 150}, // single
+		{X: 10, Y: 10, W: 500, H: 100},  // text
+		{X: 10, Y: 25, W: 500, H: 150},  // text2
+		{X: 10, Y: 40, W: 500, H: 80},   // text4
+	} {
+		for _, useY := range []bool{true, false} {
+			got := base
+			overrideLabelRect(&got, useY)
+			if got != base {
+				t.Errorf("defaults changed %+v to %+v (useY=%v)", base, got, useY)
+			}
+		}
+	}
+}
